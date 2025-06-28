@@ -1,0 +1,11 @@
+venv/
+.env/
+# migrations
+migrations/
+# database
+*.sqlite3
+#pycache
+__pycache__/
+
+#environment variables
+.env
