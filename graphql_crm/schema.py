@@ -1,3 +1,6 @@
+"""
+This module defines graphene obj type
+"""
 import graphene
 
 class Query(graphene.ObjectType):
