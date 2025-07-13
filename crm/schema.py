@@ -147,17 +147,74 @@ class CreateOrder(graphene.Mutation):
         order.save()
         order.products.set(products)
         return CreateOrder(order=order, message="Order created successfully.")
+    
+# Update Low Stock Products Mutation()==> REVERT
+class UpdateLowStockProducts(graphene.Mutation):
+    class Arguments:
+        # No arguments needed for this mutation
+        pass
+
+    class Meta:
+        description = "Updates all products with stock < 10 by incrementing their stock by 10"
+
+    # Return fields
+    success = graphene.Boolean()
+    message = graphene.String()
+    updated_products = graphene.List(ProductType)
+    updated_count = graphene.Int()
+
+    @classmethod
+    def mutate(cls, root, info):
+        try:
+            with transaction.atomic():
+                # Query products with stock < 10
+                low_stock_products = Product.objects.filter(stock__lt=10)
+                
+                if not low_stock_products.exists():
+                    return UpdateLowStockProducts(
+                        success=True,
+                        message="No low-stock products found",
+                        updated_products=[],
+                        updated_count=0
+                    )
+                
+                # Store products for return and update them
+                updated_products = []
+                
+                for product in low_stock_products:
+                    product.stock += 10
+                    product.save()
+                    updated_products.append(product)
+                
+                return UpdateLowStockProducts(
+                    success=True,
+                    message=f"Successfully updated {len(updated_products)} low-stock products",
+                    updated_products=updated_products,
+                    updated_count=len(updated_products)
+                )
+                
+        except Exception as e:
+            return UpdateLowStockProducts(
+                success=False,
+                message=f"Error updating products: {str(e)}",
+                updated_products=[],
+                updated_count=0
+            )
 
 class Mutation(graphene.ObjectType):
     create_customer = CreateCustomer.Field()
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
+    # Update low stock products mutation ()==>REVERT
+    update_low_stock_products = UpdateLowStockProducts.Field() 
 
 class Query(graphene.ObjectType):
     hello = graphene.String(default_value="Hello, GraphQL!")
     all_customers = DjangoFilterConnectionField(CustomerType, filterset_class=CustomerFilter, order_by=graphene.List(of_type=graphene.String))
     all_products = DjangoFilterConnectionField(ProductType, filterset_class=ProductFilter, order_by=graphene.List(of_type=graphene.String))
     all_orders = DjangoFilterConnectionField(OrderType, filterset_class=OrderFilter, order_by=graphene.List(of_type=graphene.String))
+    # customer = relay.Node.Field(CustomerType)
+    # product = relay.Node.Field(ProductType)
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
