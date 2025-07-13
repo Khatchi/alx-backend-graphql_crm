@@ -1,0 +1,1 @@
+0 8 * * * /c/home/user/alx-backend-graphql_crm/venv/graphql_crm/Scripts/python /c/home/user/alx-backend-graphql_crm/crm/cron_jobs/send_order_reminders.py
