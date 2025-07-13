@@ -7,7 +7,7 @@
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 # Get current working directory
-CWD=$(pwd)
+cwd=$(pwd)
 
 # Navigate to project root (assuming script is in crm/cron_jobs/)
 PROJECT_ROOT=$(dirname $(dirname "$SCRIPT_DIR"))
@@ -54,6 +54,6 @@ print(deleted_count)
 else
     echo "Error: manage.py not found in project root: $PROJECT_ROOT"
     echo "Script directory: $SCRIPT_DIR"
-    echo "Current working directory: $CWD"
+    echo "Current working directory: $cwd"
     exit 1
 fi
