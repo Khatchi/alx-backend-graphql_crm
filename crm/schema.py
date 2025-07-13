@@ -1,3 +1,4 @@
+from decimal import Decimal
 import graphene
 from graphene_django import DjangoObjectType
 from .models import Customer, Product, Order
@@ -22,11 +23,29 @@ class ProductType(DjangoObjectType):
         fields = ("id", "name", "price", "stock")
         interfaces = (relay.Node, )
 
+    # Override the price field to handle Decimal conversion
+    price = graphene.Float()
+
+    def resolve_price(self, info):
+        return float(self.price)
+
 class OrderType(DjangoObjectType):
     class Meta:
         model = Order
         fields = ("id", "customer", "products", "total_amount", "order_date")
         interfaces = (relay.Node, )
+
+    # Override products to return a simple list instead of connection
+    products = graphene.List(ProductType)
+
+    # Override total_amount to handle Decimal conversion
+    total_amount = graphene.Float()
+
+    def resolve_products(self, info):
+        return self.products.all()
+    
+    def resolve_total_amount(self, info):
+        return float(self.total_amount)
 
 # Input Types
 class CustomerInput(graphene.InputObjectType):
@@ -95,7 +114,7 @@ class CreateProduct(graphene.Mutation):
             return CreateProduct(message="Price must be positive.")
         if input.stock is not None and input.stock < 0:
             return CreateProduct(message="Stock cannot be negative.")
-        product = Product(name=input.name, price=input.price, stock=input.stock or 0)
+        product = Product(name=input.name, price=Decimal(str(input.price)), stock=input.stock or 0)
         product.save()
         return CreateProduct(product=product, message="Product created successfully.")
 
@@ -116,12 +135,12 @@ class CreateOrder(graphene.Mutation):
         if not product_ids:
             return CreateOrder(message="At least one product must be selected.")
         products = []
-        total = 0
+        total = Decimal('0.00')
         for pid in product_ids:
             try:
                 product = Product.objects.get(pk=pid)
                 products.append(product)
-                total += float(product.price)
+                total += product.price
             except ObjectDoesNotExist:
                 return CreateOrder(message=f"Invalid product ID: {pid}")
         order = Order(customer=customer, total_amount=total, order_date=order_date or datetime.now())
